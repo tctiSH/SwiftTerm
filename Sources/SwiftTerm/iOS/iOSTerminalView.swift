@@ -93,6 +93,7 @@ open class TerminalView: UIScrollView, UITextInputTraits, UIKeyInput, UIScrollVi
     var cellDimension: CellDimension!
     var caretView: CaretView!
     var terminal: Terminal!
+    var lastUpdateCursorPosition : CGPoint?
     
     var selection: SelectionService!
     var attrStrBuffer: CircularList<ViewLineInfo>!
@@ -1152,6 +1153,11 @@ extension TerminalView: TerminalDelegate {
     open func windowCommand(source: Terminal, command: Terminal.WindowManipulationCommand) -> [UInt8]? {
         return nil
     }
+
+    open func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        updateCursorPosition()
+    }
+
 }
 
 // Default implementations for TerminalViewDelegate

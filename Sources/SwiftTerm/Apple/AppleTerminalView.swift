@@ -730,6 +730,29 @@ extension TerminalView {
     /// Update visible area
     func updateDisplay (notifyAccessibility: Bool)
     {
+        let buffer = terminal.buffer
+
+        if let lastPosition = lastUpdateCursorPosition {
+            if (lastPosition.y != CGFloat(buffer.y)) || (lastPosition.x != CGFloat(buffer.x)) {
+
+                // We've got an update; scroll down to where the update happened.
+                let updatePositionPixels = CGFloat(buffer.y + buffer.yDisp) * cellDimension.height
+                let scrollOffsetPixels = contentOffset.y
+
+                // Iff the update happened offscreen, scroll to it.
+                if (updatePositionPixels < scrollOffsetPixels) || (updatePositionPixels > (scrollOffsetPixels + bounds.height)) {
+
+                    // We'll scroll to the _top_ of the screen where this happened.
+                    let positionWithLineAtBottom = updatePositionPixels - bounds.height + cellDimension.height
+                    let scrollPosition = max(positionWithLineAtBottom, CGFloat(0))
+
+                    setContentOffset(CGPoint(x: 0, y: scrollPosition), animated: false)
+                }
+            }
+        }
+
+        lastUpdateCursorPosition = CGPoint(x: buffer.x, y: buffer.y)
+
         updateCursorPosition()
         guard let (rowStart, rowEnd) = terminal.getUpdateRange () else {
             return
@@ -794,12 +817,19 @@ extension TerminalView {
         }
         
         #if os(iOS)
-        let offset = (cellDimension.height * (CGFloat(buffer.y-(buffer.yDisp-buffer.yBase))))
+
+        let padding = CGFloat(0)
+        let positionInContentPixels = CGFloat(buffer.y + buffer.yDisp) * cellDimension.height + padding
+
+        let scrollPositionInBufferPixels = contentOffset.y
+
+        let offset = positionInContentPixels // - scrollPositionInBufferPixels
         let lineOrigin = CGPoint(x: 0, y: offset)
         #else
         let offset = (cellDimension.height * (CGFloat(buffer.y-(buffer.yDisp-buffer.yBase)+1)))
-        let lineOrigin = CGPoint(x: 0, y: frame.height - offset)
+        var lineOrigin = CGPoint(x: 0, y: frame.height - offset)
         #endif
+
         caretView.frame.origin = CGPoint(x: lineOrigin.x + (cellDimension.width * CGFloat(buffer.x)), y: lineOrigin.y)
     }
     
